@@ -137,6 +137,11 @@ class IRLBatchPolopt(RLAlgorithm, metaclass=Hyperparametrized):
         return self.__irl_params
 
     def compute_irl(self, paths, itr=0):
+        for path in paths:
+            if 'rewards' in path:
+                path['rewards'] = path['rewards'].astype(np.float32)
+
+
         if self.no_reward:
             tot_rew = 0
             for path in paths:
