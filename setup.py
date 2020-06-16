@@ -13,7 +13,7 @@ setup(
         'envs': ['*.xml'],
     },
     install_requires=[
-        'rllab @ git+https://github.com/pedrofreire/rllab',
+        'rllab @ git+https://github.com/pedrofreire/rllab.git',
         'gym>=0.10.4',
         'numpy>=1.12',
         'tensorflow>=1.4.0',
