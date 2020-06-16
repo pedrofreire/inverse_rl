@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'airl'))
 from version import VERSION
 
 setup(
-    name='adversarial-irl',
+    name='inverse-rl',
     version=VERSION,
     packages=find_packages(exclude=['scripts', 'tabular_maxent_irl']),
     package_data={
