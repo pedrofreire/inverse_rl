@@ -281,6 +281,7 @@ class AIRLStateAction(SingleTimestepIRL):
         self.dO = env_spec.observation_space.flat_dim
         self.dU = env_spec.action_space.flat_dim
         self.set_demos(expert_trajs)
+
         self.max_itrs = max_itrs
 
         # build energy model
@@ -320,17 +321,29 @@ class AIRLStateAction(SingleTimestepIRL):
     def fit(self, paths, policy=None, batch_size=32, logger=None, lr=1e-3,**kwargs):
         #self._compute_path_probs(paths, insert=True)
         self.eval_expert_probs(paths, policy, insert=True)
-        self.eval_expert_probs(self.expert_trajs, policy, insert=True)
         obs, acts, path_probs = self.extract_paths(paths, keys=('observations', 'actions', 'a_logprobs'))
-        expert_obs, expert_acts, expert_probs = self.extract_paths(self.expert_trajs, keys=('observations', 'actions', 'a_logprobs'))
+        expert_obs, expert_acts = self.expert_trajs_extracted
 
         # Train discriminator
         for it in TrainingIterator(self.max_itrs, heartbeat=5):
             obs_batch, act_batch, lprobs_batch = \
                 self.sample_batch(obs, acts, path_probs, batch_size=batch_size)
 
-            expert_obs_batch, expert_act_batch, expert_lprobs_batch = \
-                self.sample_batch(expert_obs, expert_acts, expert_probs, batch_size=batch_size)
+            expert_obs_batch, expert_act_batch = \
+                self.sample_batch(expert_obs, expert_acts, batch_size=batch_size)
+
+            # The original implementation computed probabilities for the whole
+            # expert dataset at every timestep; this is very inefficient if the
+            # batch size is small, so we only compute the probabilities for the
+            # expert batch instead.
+            virtual_paths = [{
+                'observations' : expert_obs_batch,
+                'actions' : expert_act_batch,
+                'agent_infos' : policy.get_actions(expert_obs_batch)[1],
+            }]
+            expert_lprobs_batch = self._compute_path_probs(virtual_paths)
+            expert_lprobs_batch = expert_lprobs_batch[0]
+            expert_probs = expert_lprobs_batch
 
             labels = np.zeros((batch_size*2, 1))
             labels[batch_size:] = 1.0
